@@ -9,6 +9,7 @@ CREATE TABLE users (
   `id` INT AUTO_INCREMENT,
   `firstname` VARCHAR(255) NOT NULL,
   `lastname` VARCHAR(255) NOT NULL,
+  `dob` INT NOT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `number_of_runs` INT NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
@@ -17,9 +18,16 @@ CREATE TABLE users (
   INDEX `name` (`firstname`,`lastname`)
 );
 
+CREATE TABLE administrator (
+  `id` INT AUTO_INCREMENT,
+  `username` VARCHAR(255), 
+  `password` VARCHAR(255),
+  PRIMARY KEY (`id`)
+);
+
 CREATE TABLE runs (
   `id` INT AUTO_INCREMENT,
-  `hash` INT,
+  `hash` VARCHAR(255) UNIQUE,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `date_of_run` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

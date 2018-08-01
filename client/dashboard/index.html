@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+</head>
+
+<body>
+    <div id='selection'>
+        <h1>Dashboard</h1>
+        <h3>Select the date of the run</h3>
+        <select name="year" id="year">
+            <option value="2017">2017</option>
+            <option value="2018">2018</option>
+            <option value="2019">2019</option>
+            <option value="2020">2020</option>
+        </select>
+        <select name="month" id="month">
+            <option value="0">January</option>
+            <option value="1">February</option>
+            <option value="2">March</option>
+            <option value="3">April</option>
+            <option value="4">May</option>
+            <option value="5">June</option>
+            <option value="6">July</option>
+            <option value="7">August</option>
+            <option value="8">September</option>
+            <option value="9">October</option>
+            <option value="10">November</option>
+            <option value="11">December</option>
+        </select>
+        <select name="day" id="day">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+            <option value="11">11</option>
+            <option value="12">12</option>
+            <option value="13">13</option>
+            <option value="14">14</option>
+            <option value="15">15</option>
+            <option value="16">16</option>
+            <option value="17">17</option>
+            <option value="18">18</option>
+            <option value="19">19</option>
+            <option value="20">20</option>
+            <option value="21">21</option>
+            <option value="22">22</option>
+            <option value="23">23</option>
+            <option value="24">24</option>
+            <option value="25">25</option>
+            <option value="26">26</option>
+            <option value="27">27</option>
+            <option value="28">28</option>
+            <option value="29">29</option>
+            <option value="30">30</option>
+            <option value="31">31</option>
+        </select>
+        <h3>Click below to generate the QR code</h3>
+        <button id='generate'>Generate QR code</button>
+        <br/>
+        <br/>
+    </div>
+
+    <style>
+        #qr{
+            width: 25%
+        }
+    </style>
+
+    <script type='text/javascript'>
+        document.addEventListener("DOMContentLoaded", function (event) { 
+
+            const CurrentDate = new Date(); 
+            document.getElementById("year").value = CurrentDate.getFullYear();
+            document.getElementById("month").value = CurrentDate.getMonth(); 
+            document.getElementById("day").value = CurrentDate.getDate(); 
+            
+            document.getElementById('generate').addEventListener('click', (event) => {
+                event.preventDefault();
+                const options = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890';
+                let hash = '';
+                for (let i = 0; i < 25; i++) {
+                    hash += options[Math.floor(Math.random() * options.length)];
+                }
+                let month = document.getElementById('month').value;
+                let day = document.getElementById('day').value;
+
+                const date =    document.getElementById('year').value + '-' + 
+                                (month < 10 ? '0'+month : month) + '-' + 
+                                (day < 10 ? '0'+day : day);
+                
+                var r = new XMLHttpRequest();
+                r.open("POST", `/createQR?h=${hash}&d=${date}`, true);
+                r.onreadystatechange = function () {
+                    if (r.readyState != 4 || r.status != 200) return;
+                    response = JSON.parse(r.responseText);
+                    if (response.message === 'created_qr_code') {
+                        let a = document.createElement('a');
+                        a.href=`http://api.qrserver.com/v1/create-qr-code/?data=${response.hash}&size=1500x1500&format=svg`;
+                        let x = document.createElement('img');
+                        x.src = `http://api.qrserver.com/v1/create-qr-code/?data=${response.hash}&size=1000x1000`
+                        x.id = 'qr';
+                        let p = document.createElement('p');
+                        let text = document.createTextNode('Click for a high resolution file');
+                        a.appendChild(x);
+                        p.appendChild(text);
+                        a.appendChild(p);
+                        document.getElementById('selection').appendChild(a);
+                    } else if (response.message === 'duplicate_date') {
+                        alert('A QR code has already been created for the selected date. The code for the selected date is being displayed below');
+                        let a = document.createElement('a');
+                        a.id = 'qr';
+                        a.href=`http://api.qrserver.com/v1/create-qr-code/?data=${response.hash}&size=1500x1500&format=svg`;
+                        let x = document.createElement('img');
+                        x.id = 'qr';
+                        x.src = `http://api.qrserver.com/v1/create-qr-code/?data=${response.hash}&size=1000x1000`
+                        let p = document.createElement('p');
+                        let text = document.createTextNode('Click for a high resolution file');
+                        a.appendChild(x);
+                        p.appendChild(text);
+                        a.appendChild(p);
+                        let node = document.getElementById('qr');
+                        if (node) {
+                            let parent = node.parentNode;
+                            parent.replaceChild(a, node);
+                        } else {
+                            document.getElementById('selection').appendChild(a);
+                        }
+                    } else {
+                        alert('Error creating a QR code');
+                    }
+                };
+                r.send(hash, date);
+            });
+        });
+    </script>
+
+</body>
+
+</html>

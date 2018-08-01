@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+    <header>
+        <title>Login for Sloppy Moose Admin Dashboard</title>
+    </header>
+
+<body>
+
+    <h1>Sloppy Moose Admin Dashboard</h1>
+    <h2>Please Sign In</h2>
+
+    <form id='login-form'>
+        <p>Username:</p>
+        <br>
+        <input name='u' type="text" id="username" placeholder="User">
+        <br> <p>Password:</p>
+        <br>
+        <input p='p' type="password" id="password" placeholder="Pass">
+        <br>
+        <br>
+        <div id='data'></div>
+        <input type="submit" value="Submit">
+    </form>
+
+    <script>
+
+    document.addEventListener("DOMContentLoaded", function (event) {
+    document.getElementById('login-form')
+        .addEventListener(
+            'submit',
+            function (event) {
+                event.preventDefault();
+                let user = document.getElementById('username').value;
+                let pass = document.getElementById('password').value;
+
+                if (!user || !pass) {
+                    alert('Please enter a username and password');
+                } else {
+                    var r = new XMLHttpRequest();
+                    r.open("GET", `login_user?u=${user}&p=${pass}`, true);
+                    r.onreadystatechange = function () {
+                        if (r.readyState != 4 || r.status != 200) return;
+                        if (r.responseText && r.responseText === 'no_username_found') {
+                            const node = document.createTextNode('No user with that name was found');
+                            document.getElementById('data').appendChild(node);
+                        } else if (r.responseText && r.responseText === 'bad_password') {
+                            const node = document.createTextNode('Please enter the correct password');
+                            document.getElementById('data').appendChild(node);
+                        } else {
+                            console.log(r.response);
+                            document.cookie = r.response;
+                            window.location.href = 'dashboard';
+                        }
+                    };
+                    r.encoding = 'text/html';
+                    r.send();
+                }
+            }
+        );
+});
+    </script>
+    </body>
+
+</html>
