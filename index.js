@@ -44,7 +44,7 @@ server.post('/checkName',
 server.post('/signUp',
     (req, res) => {
         // Check if the code is the same as the newest code
-        console.log(req.body);
+        console.log('signup', req.body);
         let fName = _.escape(req.body.params.f).toLowerCase(),
             lName = _.escape(req.body.params.l).toLowerCase(),
             dob = _.escape(req.body.params.d), 
@@ -59,27 +59,33 @@ server.post('/signUp',
                     [code], 
             (err, data) => {
                 if (err) console.log(err);
-                // if there are no results, 
-                // then return an error message because they scanned the wrong code, 
-                // otherwise save the index into a var
-                // insert the user
-                db.query(`  INSERT INTO users 
+                if (data.length === 1) {
+                    console.log('HERE IS THE DATA', data);
+                    const run_id = data[0].id;
+                    db.query(`  INSERT INTO users 
                             (firstname, lastname, dob, size, number_of_runs) 
-                            VALUES (?, ?, ?, ?)`, 
+                            VALUES (?, ?, ?, ?, ?)`, 
                             [fName, lName, dob, size, 1], 
-                    (err, data) => {
-                        // record the run
-                        if (err) console.log(err); 
-                        db.query(`  INSERT INTO user_runs
+                        (err, data) => {
+                            // record the run
+                            if (err) console.log(err); 
+                            console.log('THIS IS THE USER ID SUCCESS', data);
+                            db.query(`  INSERT INTO user_runs
                                     (user_id, run_id)
                                     VALUES (?, ?)`, 
-                                    [ , ],
-                            (err, data) => {
-                                if (err) console.log(err);
-                                console.log(data);
-                        })
-                    }
-                )
+                                    [data.insertId, run_id],
+                                (err, data) => {
+                                    if (err) console.log(err);
+                                    console.log(data);
+                                    res.send({message: 'successful_signup'});
+                                }
+                            )
+                        }
+                    )
+                } else {
+                    console.log("error_wrong_code");
+                    res.send({message: 'error_wrong_code'});
+                }
             }
         );
     }
@@ -88,7 +94,7 @@ server.post('/signUp',
 server.post('/signIn',
     (req, res) => {
         // Check if the code is the same as the newest code
-        console.log(req.body);
+        console.log('signin', req.body);
         let fName = _.escape(req.body.params.f).toLowerCase(),
             lName = _.escape(req.body.params.l).toLowerCase(),
             dob = _.escape(req.body.params.d), 
@@ -100,7 +106,57 @@ server.post('/signIn',
                     AND hash = ?`,
                     [code], 
             (err, data) => {
-                // wrong code? 
+                if (data.length === 1) {
+                    const run_id = data[0].id;
+                    db.query(`  SELECT * 
+                                FROM users
+                                WHERE firstname = ? 
+                                AND lastname = ? 
+                                AND dob = ?`, 
+                                [fName, lName, dob], 
+                    (err, data) => {
+                        if (data.length === 1) {
+                            console.log('HERE IS THE login DATA', data);
+                            const num_of_runs = data[0].number_of_runs;
+                            const runnerId = data[0].id;
+                            // make sure the user hasn't already signed in , if yes, update user_runs and users.number_of_runs
+                            db.query(`  SELECT * 
+                                        FROM user_runs
+                                        WHERE user_id = ?`, 
+                                        [runnerId],
+                                    (err, data) => {
+                                        if (data.length > 0) {
+                                            res.send({message: 'duplicate_signin'});
+                                        } else {
+                                            db.query(`  INSERT INTO user_runs
+                                                        (user_id, run_id)
+                                                        VALUES (?, ?)`, 
+                                                        [runnerId, run_id],
+                                                (err, data) => {
+                                                    if (err) console.log(err);
+                                                    db.query(`  UPDATE users 
+                                                                SET number_of_runs = number_of_runs + 1
+                                                                WHERE id = ?`, 
+                                                            [runnerId], 
+                                                        (err, data) => {
+                                                            console.log('successful_signin');
+                                                            res.send({message: 'successful_signin', runCount: num_of_runs + 1});
+                                                        }
+                                                    );
+                                                }
+                                            );
+                                        }
+                                    }
+                                );
+                        } else {
+                            console.log('multiple_users');
+                            res.send('multiple_users');
+                        }
+                    })
+                } else {
+                    console.log('error_wrong_code');
+                    res.send('error_wrong_code');
+                }
             }
         );
     }

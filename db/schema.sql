@@ -10,6 +10,7 @@ CREATE TABLE users (
   `firstname` VARCHAR(255) NOT NULL,
   `lastname` VARCHAR(255) NOT NULL,
   `dob` INT NOT NULL,
+  `size` VARCHAR(255) NOT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `number_of_runs` INT NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
