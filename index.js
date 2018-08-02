@@ -3,6 +3,7 @@ const db = require('./db/index.js');
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
+const _ = require('underscore');
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt-nodejs');
@@ -17,23 +18,91 @@ server.post('/checkName',
     (req, res) => {
         // Check if the name exists. Respond exists/not_exists
         console.log(req.body.params);
-        res.send({message: 'new_user'});
+        // res.send({message: 'new_user'});
+        let fName = _.escape(req.body.params.f).toLowerCase(),
+            lName = _.escape(req.body.params.l).toLowerCase(), 
+            dob = _.escape(req.body.params.d);
         db.query(`  SELECT * 
                     FROM users 
                     WHERE firstname = ?
                     AND lastname = ? 
                     AND dob = ?`, 
-                    [req.body.params.f, req.body.params.l, req.body.params.d],
+            [fName, lName, dob],
+            (err, data) => {
+                console.log(data);
+                if (err) console.log(err);
+                if (data.length === 0) {
+                    res.send({message: 'new_user'});
+                } else if (data.length === 1) {
+                    res.send({message: 'existing_user'});
+                }
+            }
+        );
+    }
+);
+
+server.post('/signUp',
+    (req, res) => {
+        // Check if the code is the same as the newest code
+        console.log(req.body);
+        let fName = _.escape(req.body.params.f).toLowerCase(),
+            lName = _.escape(req.body.params.l).toLowerCase(),
+            dob = _.escape(req.body.params.d), 
+            size = _.escape(req.body.params.s),
+            code = _.escape(req.body.params.c);
+
+        db.query(`  SELECT * 
+                    FROM runs
+                    WHERE date_of_run >= CURRENT_DATE
+                    AND date_of_run < DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY)
+                    AND hash = ?`, 
+                    [code], 
+            (err, data) => {
+                if (err) console.log(err);
+                // if there are no results, 
+                // then return an error message because they scanned the wrong code, 
+                // otherwise save the index into a var
+                // insert the user
+                db.query(`  INSERT INTO users 
+                            (firstname, lastname, dob, size, number_of_runs) 
+                            VALUES (?, ?, ?, ?)`, 
+                            [fName, lName, dob, size, 1], 
                     (err, data) => {
-                        console.log(err, data);
-                    });
-    } 
+                        // record the run
+                        if (err) console.log(err); 
+                        db.query(`  INSERT INTO user_runs
+                                    (user_id, run_id)
+                                    VALUES (?, ?)`, 
+                                    [ , ],
+                            (err, data) => {
+                                if (err) console.log(err);
+                                console.log(data);
+                        })
+                    }
+                )
+            }
+        );
+    }
 );
 
 server.post('/signIn',
     (req, res) => {
         // Check if the code is the same as the newest code
         console.log(req.body);
+        let fName = _.escape(req.body.params.f).toLowerCase(),
+            lName = _.escape(req.body.params.l).toLowerCase(),
+            dob = _.escape(req.body.params.d), 
+            code = _.escape(req.body.params.c);
+        db.query(`  SELECT * 
+                    FROM runs
+                    WHERE date_of_run >= CURRENT_DATE
+                    AND date_of_run < DATE_ADD(CURRENT_DATE, INTERVAL 1 DAY)
+                    AND hash = ?`,
+                    [code], 
+            (err, data) => {
+                // wrong code? 
+            }
+        );
     }
 );
 
@@ -83,7 +152,6 @@ server.get('/login_user', (req, res) => {
 server.get('/', (req, res) => res.sendFile(path.resolve(__dirname, './client/login/index.html')));
 
 server.use((req, res, next) => {
-    console.log(req.headers.cookie);
     if (typeof req.headers.cookie !== 'undefined') {
         req.token = req.headers.cookie.split('; ')
         if (req.token.length === 1) {
